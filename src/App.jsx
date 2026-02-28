@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 
 const COLORS = {
   bg: "#F2E2C4",
@@ -121,37 +121,181 @@ function propagate(sw, sp, wp, n) {
 function CellContent({ value }) {
   if (value === -1)
     return (
-      <span style={{ color: COLORS.red, fontWeight: 800, fontSize: "1.3em", fontFamily: "'Courier New', monospace" }}>
+      <span style={{ color: COLORS.red, fontWeight: 800, fontSize: "1.1em", fontFamily: "'Courier New', monospace" }}>
         ✕
       </span>
     );
   if (value === 1)
     return (
-      <span style={{ color: COLORS.teal, fontWeight: 800, fontSize: "1.4em" }}>
+      <span style={{ color: COLORS.teal, fontWeight: 800, fontSize: "1.2em" }}>
         ✓
       </span>
     );
   return null;
 }
 
-function GridTable({ rowLabels, colLabels, matrix, onCellClick, title }) {
-  const [hoveredCell, setHoveredCell] = useState(null);
+// Tabela combinada única, layout clássico Murdle/Cluedo:
+//
+//                | Suspeito A | Suspeito B | Suspeito C |  ← colunas de suspeitos
+// ───────────────┼────────────┼────────────┼────────────┤
+// [ARMAS]        |            |            |            |
+//   Arma 1       |  SW[0][0]  |  SW[0][1]  |  SW[0][2]  |
+//   Arma 2       |  SW[1][0]  |  SW[1][1]  |  SW[1][2]  |
+//   Arma 3       |  SW[2][0]  |  SW[2][1]  |  SW[2][2]  |
+// ───────────────┼────────────┼────────────┼────────────┤
+// [LOCAIS]       |            |            |            |
+//   Local X      |  SP[0][0]  |  SP[0][1]  |  SP[0][2]  |
+//   Local Y      |  SP[1][0]  |  SP[1][1]  |  SP[1][2]  |
+//   Local Z      |  SP[2][0]  |  SP[2][1]  |  SP[2][2]  |
+//
+// Linhas de arma × local (WP) ficam abaixo como bloco separado na mesma tabela:
+//
+//                | Local X    | Local Y    | Local Z    |  ← colunas de locais
+// ───────────────┼────────────┼────────────┼────────────┤
+// [ARMAS]        |            |            |            |
+//   Arma 1       |  WP[0][0]  |  WP[0][1]  |  WP[0][2]  |
+//   Arma 2       |  WP[1][0]  |  WP[1][1]  |  WP[1][2]  |
+//   Arma 3       |  WP[2][0]  |  WP[2][1]  |  WP[2][2]  |
+
+function CombinedGrid({ suspects, weapons, places, gridSW, gridSP, gridWP, onCellClick }) {
+  const [hovered, setHovered] = useState(null); // { grid, r, c }
+
+  const isHov = (grid, r, c) =>
+    hovered && hovered.grid === grid && hovered.r === r && hovered.c === c;
+
+  const cellTd = (grid, r, c, value) => (
+    <td
+      key={c}
+      onClick={() => onCellClick(grid, r, c)}
+      onMouseEnter={() => setHovered({ grid, r, c })}
+      onMouseLeave={() => setHovered(null)}
+      style={{
+        width: 44,
+        height: 38,
+        textAlign: "center",
+        verticalAlign: "middle",
+        border: `1px solid ${COLORS.black}`,
+        background: isHov(grid, r, c) ? COLORS.cellHover : COLORS.white,
+        cursor: "pointer",
+        transition: "background 0.12s",
+        userSelect: "none",
+      }}
+    >
+      <CellContent value={value} />
+    </td>
+  );
+
+  const sectionHeaderTd = (label, colSpan) => (
+    <td
+      colSpan={colSpan}
+      style={{
+        background: COLORS.red,
+        color: COLORS.white,
+        fontFamily: "'Oswald', 'Impact', sans-serif",
+        fontSize: "0.65rem",
+        fontWeight: 700,
+        letterSpacing: "0.15em",
+        textTransform: "uppercase",
+        padding: "3px 8px",
+        border: `1px solid ${COLORS.black}`,
+        textAlign: "left",
+      }}
+    >
+      {label}
+    </td>
+  );
+
+  const rowLabelTd = (label) => (
+    <td
+      style={{
+        background: COLORS.headerBg,
+        color: COLORS.headerText,
+        fontFamily: "'Oswald', 'Impact', sans-serif",
+        fontSize: "0.68rem",
+        fontWeight: 600,
+        letterSpacing: "0.04em",
+        textTransform: "uppercase",
+        padding: "4px 10px",
+        border: `1px solid ${COLORS.black}`,
+        textAlign: "right",
+        whiteSpace: "nowrap",
+        minWidth: 90,
+      }}
+    >
+      {label}
+    </td>
+  );
+
+  const colHeaderTh = (label) => (
+    <th
+      style={{
+        background: COLORS.headerBg,
+        color: COLORS.headerText,
+        fontFamily: "'Oswald', 'Impact', sans-serif",
+        fontSize: "0.68rem",
+        fontWeight: 600,
+        letterSpacing: "0.04em",
+        textTransform: "uppercase",
+        padding: "6px 4px",
+        border: `1px solid ${COLORS.black}`,
+        textAlign: "center",
+        width: 44,
+        minWidth: 44,
+        lineHeight: 1.2,
+        wordBreak: "break-word",
+      }}
+    >
+      {label}
+    </th>
+  );
+
+  const n = suspects.length;
 
   return (
-    <div style={{ marginBottom: 24 }}>
-      <h3
+    <div style={{ overflowX: "auto", padding: "0 8px" }}>
+      {/* ── BLOCO SUPERIOR: Suspeitos × (Armas + Locais) ── */}
+      <table
         style={{
-          fontFamily: "'Oswald', 'Impact', sans-serif",
-          fontSize: "0.85rem",
-          letterSpacing: "0.15em",
-          textTransform: "uppercase",
-          color: COLORS.red,
-          marginBottom: 8,
-          textAlign: "center",
+          borderCollapse: "collapse",
+          border: `2px solid ${COLORS.black}`,
+          margin: "0 auto 24px",
         }}
       >
-        {title}
-      </h3>
+        <thead>
+          <tr>
+            {/* canto vazio */}
+            <th style={{ background: COLORS.black, border: `1px solid ${COLORS.black}`, minWidth: 90 }} />
+            {suspects.map((s, i) => (
+              <React.Fragment key={i}>{colHeaderTh(s)}</React.Fragment>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {/* seção ARMAS */}
+          <tr>
+            {sectionHeaderTd("Armas", n + 1)}
+          </tr>
+          {weapons.map((w, r) => (
+            <tr key={r}>
+              {rowLabelTd(w)}
+              {suspects.map((_, c) => cellTd("sw", r, c, gridSW[r][c]))}
+            </tr>
+          ))}
+
+          {/* seção LOCAIS */}
+          <tr>
+            {sectionHeaderTd("Locais", n + 1)}
+          </tr>
+          {places.map((p, r) => (
+            <tr key={r}>
+              {rowLabelTd(p)}
+              {suspects.map((_, c) => cellTd("sp", r, c, gridSP[r][c]))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* ── BLOCO INFERIOR: Armas × Locais ── */}
       <table
         style={{
           borderCollapse: "collapse",
@@ -161,84 +305,20 @@ function GridTable({ rowLabels, colLabels, matrix, onCellClick, title }) {
       >
         <thead>
           <tr>
-            <th
-              style={{
-                background: COLORS.black,
-                border: `1px solid ${COLORS.black}`,
-                width: 100,
-                minWidth: 70,
-              }}
-            />
-            {colLabels.map((label, c) => (
-              <th
-                key={c}
-                style={{
-                  background: COLORS.headerBg,
-                  color: COLORS.headerText,
-                  fontFamily: "'Oswald', 'Impact', sans-serif",
-                  fontSize: "0.7rem",
-                  fontWeight: 600,
-                  letterSpacing: "0.05em",
-                  textTransform: "uppercase",
-                  padding: "6px 4px",
-                  border: `1px solid ${COLORS.black}`,
-                  textAlign: "center",
-                  width: 60,
-                  minWidth: 50,
-                  lineHeight: 1.2,
-                  wordBreak: "break-word",
-                }}
-              >
-                {label}
-              </th>
+            <th style={{ background: COLORS.black, border: `1px solid ${COLORS.black}`, minWidth: 90 }} />
+            {places.map((p, i) => (
+              <React.Fragment key={i}>{colHeaderTh(p)}</React.Fragment>
             ))}
           </tr>
         </thead>
         <tbody>
-          {rowLabels.map((label, r) => (
+          <tr>
+            {sectionHeaderTd("Armas × Locais", n + 1)}
+          </tr>
+          {weapons.map((w, r) => (
             <tr key={r}>
-              <td
-                style={{
-                  background: COLORS.headerBg,
-                  color: COLORS.headerText,
-                  fontFamily: "'Oswald', 'Impact', sans-serif",
-                  fontSize: "0.7rem",
-                  fontWeight: 600,
-                  letterSpacing: "0.05em",
-                  textTransform: "uppercase",
-                  padding: "4px 8px",
-                  border: `1px solid ${COLORS.black}`,
-                  textAlign: "right",
-                  lineHeight: 1.2,
-                }}
-              >
-                {label}
-              </td>
-              {colLabels.map((_, c) => {
-                const isHovered =
-                  hoveredCell && hoveredCell[0] === r && hoveredCell[1] === c;
-                return (
-                  <td
-                    key={c}
-                    onClick={() => onCellClick(r, c)}
-                    onMouseEnter={() => setHoveredCell([r, c])}
-                    onMouseLeave={() => setHoveredCell(null)}
-                    style={{
-                      width: 44,
-                      height: 44,
-                      textAlign: "center",
-                      verticalAlign: "middle",
-                      border: `1px solid ${COLORS.black}`,
-                      background: isHovered ? COLORS.cellHover : COLORS.white,
-                      cursor: "pointer",
-                      transition: "background 0.12s",
-                      userSelect: "none",
-                    }}
-                  >
-                    <CellContent value={matrix[r][c]} />
-                  </td>
-                );
-              })}
+              {rowLabelTd(w)}
+              {places.map((_, c) => cellTd("wp", r, c, gridWP[r][c]))}
             </tr>
           ))}
         </tbody>
@@ -461,36 +541,16 @@ export default function App() {
         </div>
       )}
 
-      {/* Grids */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          gap: 24,
-          padding: "16px 12px 40px",
-        }}
-      >
-        <GridTable
-          title="Suspeitos × Armas"
-          rowLabels={suspects}
-          colLabels={weapons}
-          matrix={gridSW}
-          onCellClick={(r, c) => handleCellClick("sw", r, c)}
-        />
-        <GridTable
-          title="Suspeitos × Locais"
-          rowLabels={suspects}
-          colLabels={places}
-          matrix={gridSP}
-          onCellClick={(r, c) => handleCellClick("sp", r, c)}
-        />
-        <GridTable
-          title="Armas × Locais"
-          rowLabels={weapons}
-          colLabels={places}
-          matrix={gridWP}
-          onCellClick={(r, c) => handleCellClick("wp", r, c)}
+      {/* Grid combinada */}
+      <div style={{ padding: "16px 8px 40px" }}>
+        <CombinedGrid
+          suspects={suspects}
+          weapons={weapons}
+          places={places}
+          gridSW={gridSW}
+          gridSP={gridSP}
+          gridWP={gridWP}
+          onCellClick={handleCellClick}
         />
       </div>
 
@@ -502,12 +562,11 @@ export default function App() {
           fontSize: "0.75rem",
           color: "#666",
           fontFamily: "'Special Elite', monospace",
+          padding: "0 12px 32px",
         }}
       >
-        <span style={{ marginRight: 16 }}>
-          Clique: vazio → <span style={{ color: COLORS.red, fontWeight: 800 }}>✕</span> →{" "}
-          <span style={{ color: COLORS.teal, fontWeight: 800 }}>✓</span> → vazio
-        </span>
+        Clique: vazio → <span style={{ color: COLORS.red, fontWeight: 800 }}>✕</span> →{" "}
+        <span style={{ color: COLORS.teal, fontWeight: 800 }}>✓</span> → vazio
       </div>
     </div>
   );
@@ -519,12 +578,14 @@ const btnStyle = {
   fontWeight: 600,
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  padding: "8px 18px",
+  padding: "10px 20px",
+  minHeight: 44,
   border: `2px solid ${COLORS.black}`,
   background: COLORS.white,
   color: COLORS.black,
   cursor: "pointer",
   transition: "all 0.15s",
+  touchAction: "manipulation",
 };
 
 const labelStyle = {

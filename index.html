@@ -7,6 +7,12 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { -webkit-font-smoothing: antialiased; }
+
+      /* Células touch-friendly em mobile */
+      @media (max-width: 480px) {
+        td, th { min-width: 34px !important; width: 34px !important; height: 34px !important; }
+        td[style*="min-width: 90"] { min-width: 70px !important; }
+      }
     </style>
   </head>
   <body>
