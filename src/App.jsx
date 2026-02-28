@@ -458,6 +458,7 @@ export default function App() {
     setGridSP(createMatrix(n, n));
     setGridWP(createMatrix(n, n));
     setHistory([]);
+    setCulprit(null);
   }, [n]);
 
   const handleCell = useCallback(
@@ -504,25 +505,22 @@ export default function App() {
     setPlaces((prev) => prev.map((v, idx) => (idx === i ? val : v)));
   }, []);
 
+  const [culprit, setCulprit] = useState(null); // índice do suspeito culpado
+
   const solved =
     gridSW.flat().filter((v) => v === 1).length === n &&
     gridSP.flat().filter((v) => v === 1).length === n &&
     gridWP.flat().filter((v) => v === 1).length === n;
 
-  // Extrai todos os trios: cada suspeito com sua arma e local
+  // Monta o trio do culpado selecionado
   // gridSW[s][w] === 1 → suspeito s usou arma w
   // gridSP[s][p] === 1 → suspeito s estava no local p
-  const solutions = (() => {
-    if (!solved) return [];
-    const trios = [];
-    for (let s = 0; s < n; s++) {
-      const w = gridSW[s].indexOf(1);
-      const p = gridSP[s].indexOf(1);
-      if (w !== -1 && p !== -1) {
-        trios.push({ suspect: suspects[s], weapon: weapons[w], place: places[p] });
-      }
-    }
-    return trios;
+  const solution = (() => {
+    if (!solved || culprit === null) return null;
+    const w = gridSW[culprit].indexOf(1);
+    const p = gridSP[culprit].indexOf(1);
+    if (w === -1 || p === -1) return null;
+    return { suspect: suspects[culprit], weapon: weapons[w], place: places[p] };
   })();
 
   return (
@@ -555,7 +553,7 @@ export default function App() {
       </p>
 
       {/* Solved banner */}
-      {solved && solutions.length > 0 && (
+      {solved && (
         <div
           style={{
             textAlign: "center",
@@ -572,21 +570,52 @@ export default function App() {
             fontSize: "1.1rem",
             letterSpacing: "0.12em",
             textTransform: "uppercase",
-            marginBottom: 8,
+            marginBottom: 10,
           }}>
             ✓ Puzzle Resolvido!
           </div>
-          {solutions.map((sol, i) => (
-            <div key={i} style={{
+
+          {/* Seletor de culpado */}
+          <div style={{ marginBottom: 10, fontFamily: "'Oswald', sans-serif", fontSize: "0.8rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+            Quem é o culpado?
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+            {suspects.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => setCulprit(i)}
+                style={{
+                  fontFamily: "'Oswald', sans-serif",
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  padding: "6px 14px",
+                  border: `2px solid ${COLORS.black}`,
+                  background: culprit === i ? COLORS.red : COLORS.white,
+                  color: culprit === i ? COLORS.white : COLORS.black,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          {/* Resultado */}
+          {solution && (
+            <div style={{
               fontFamily: "'Special Elite', 'Courier New', monospace",
-              fontSize: "0.9rem",
+              fontSize: "1rem",
               fontWeight: 400,
               letterSpacing: "0.04em",
-              marginBottom: 2,
+              padding: "8px 0 4px",
+              borderTop: `1px solid ${COLORS.black}`,
             }}>
-              Foi <strong>{sol.suspect}</strong> com <strong>{sol.weapon}</strong> no <strong>{sol.place}</strong>
+              Foi <strong>{solution.suspect}</strong> com <strong>{solution.weapon}</strong> no <strong>{solution.place}</strong>
             </div>
-          ))}
+          )}
         </div>
       )}
 
