@@ -507,14 +507,32 @@ export default function App() {
 
   const [culprit, setCulprit] = useState(null); // índice do suspeito culpado
 
-  const solved =
-    gridSW.flat().filter((v) => v === 1).length === n &&
-    gridSP.flat().filter((v) => v === 1).length === n &&
-    gridWP.flat().filter((v) => v === 1).length === n;
+  const swConfirms = gridSW.flat().filter((v) => v === 1).length;
+  const spConfirms = gridSP.flat().filter((v) => v === 1).length;
+  const wpConfirms = gridWP.flat().filter((v) => v === 1).length;
+  const totalConfirms = swConfirms + spConfirms + wpConfirms;
+  const totalNeeded = n * 3; // n confirmações em cada uma das 3 grids
+  const solved = swConfirms === n && spConfirms === n && wpConfirms === n;
+
+  // Deduções parciais: lista os trios já confirmados (mesmo que incompletos)
+  const deductions = (() => {
+    const list = [];
+    for (let s = 0; s < n; s++) {
+      const w = gridSW[s].indexOf(1);
+      const p = gridSP[s].indexOf(1);
+      if (w !== -1 || p !== -1) {
+        list.push({
+          suspect: suspects[s],
+          weapon: w !== -1 ? weapons[w] : "?",
+          place: p !== -1 ? places[p] : "?",
+          complete: w !== -1 && p !== -1,
+        });
+      }
+    }
+    return list;
+  })();
 
   // Monta o trio do culpado selecionado
-  // gridSW[s][w] === 1 → suspeito s usou arma w
-  // gridSP[s][p] === 1 → suspeito s estava no local p
   const solution = (() => {
     if (!solved || culprit === null) return null;
     const w = gridSW[culprit].indexOf(1);
@@ -548,9 +566,50 @@ export default function App() {
       </div>
 
       {/* Hint edição */}
-      <p style={{ textAlign: "center", fontSize: "0.72rem", color: "#888", fontFamily: "'Special Elite', monospace", marginBottom: 12 }}>
+      <p style={{ textAlign: "center", fontSize: "0.72rem", color: "#888", fontFamily: "'Special Elite', monospace", marginBottom: 8 }}>
         Toque no nome de qualquer suspeito, arma ou local para editar
       </p>
+
+      {/* Progresso + Deduções parciais */}
+      {totalConfirms > 0 && !solved && (
+        <div style={{ maxWidth: 500, margin: "0 auto 12px", padding: "0 16px" }}>
+          {/* Barra de progresso */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <div style={{
+              flex: 1, height: 6, background: "#ddd", borderRadius: 3, overflow: "hidden",
+              border: `1px solid ${COLORS.black}`,
+            }}>
+              <div style={{
+                width: `${(totalConfirms / totalNeeded) * 100}%`,
+                height: "100%",
+                background: COLORS.teal,
+                transition: "width 0.3s",
+              }} />
+            </div>
+            <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: "0.7rem", color: "#666", whiteSpace: "nowrap" }}>
+              {totalConfirms}/{totalNeeded}
+            </span>
+          </div>
+
+          {/* Deduções parciais */}
+          {deductions.length > 0 && (
+            <div style={{ fontFamily: "'Special Elite', monospace", fontSize: "0.78rem", color: "#555" }}>
+              {deductions.map((d, i) => (
+                <div key={i} style={{ marginBottom: 2 }}>
+                  <span style={{ color: d.complete ? COLORS.teal : "#999" }}>
+                    {d.complete ? "✓" : "…"}
+                  </span>{" "}
+                  <strong>{d.suspect}</strong>
+                  {" → "}
+                  {d.weapon !== "?" ? d.weapon : <em style={{ color: "#aaa" }}>arma?</em>}
+                  {" no "}
+                  {d.place !== "?" ? d.place : <em style={{ color: "#aaa" }}>local?</em>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Solved banner */}
       {solved && (
