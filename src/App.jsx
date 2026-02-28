@@ -485,6 +485,21 @@ export default function App() {
     gridSP.flat().filter((v) => v === 1).length === n &&
     gridWP.flat().filter((v) => v === 1).length === n;
 
+  // Extrai o trio culpado: o suspeito que tem exatamente 1 confirmação em SW e SP
+  // gridSW[s][w] === 1 → suspeito s usou arma w
+  // gridSP[s][p] === 1 → suspeito s estava no local p
+  const solution = (() => {
+    if (!solved) return null;
+    for (let s = 0; s < n; s++) {
+      const w = gridSW[s].indexOf(1);
+      const p = gridSP[s].indexOf(1);
+      if (w !== -1 && p !== -1) {
+        return { suspect: suspects[s], weapon: weapons[w], place: places[p] };
+      }
+    }
+    return null;
+  })();
+
   return (
     <div style={{ minHeight: "100vh", background: COLORS.bg, fontFamily: "'Georgia', serif", color: COLORS.black }}>
       <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Special+Elite&display=swap" rel="stylesheet" />
@@ -515,9 +530,35 @@ export default function App() {
       </p>
 
       {/* Solved banner */}
-      {solved && (
-        <div style={{ textAlign: "center", padding: "10px", background: COLORS.teal, color: COLORS.black, fontFamily: "'Oswald', sans-serif", fontWeight: 700, fontSize: "1.1rem", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-          ✓ Puzzle Resolvido!
+      {solved && solution && (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "14px 20px",
+            background: COLORS.teal,
+            color: COLORS.black,
+            borderTop: `3px solid ${COLORS.black}`,
+            borderBottom: `3px solid ${COLORS.black}`,
+          }}
+        >
+          <div style={{
+            fontFamily: "'Oswald', sans-serif",
+            fontWeight: 700,
+            fontSize: "1.1rem",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            marginBottom: 6,
+          }}>
+            ✓ Puzzle Resolvido!
+          </div>
+          <div style={{
+            fontFamily: "'Special Elite', 'Courier New', monospace",
+            fontSize: "0.95rem",
+            fontWeight: 400,
+            letterSpacing: "0.04em",
+          }}>
+            Foi <strong>{solution.suspect}</strong> com <strong>{solution.weapon}</strong> no <strong>{solution.place}</strong>
+          </div>
         </div>
       )}
 
