@@ -28,11 +28,30 @@ function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
+function hasConfirmInRow(grid, r, exceptC) {
+  for (let c = 0; c < grid[r].length; c++) {
+    if (c !== exceptC && grid[r][c] === 1) return true;
+  }
+  return false;
+}
+
+function hasConfirmInCol(grid, c, exceptR) {
+  for (let r = 0; r < grid.length; r++) {
+    if (r !== exceptR && grid[r][c] === 1) return true;
+  }
+  return false;
+}
+
+function canConfirm(grid, r, c) {
+  // Impede confirmar se já existe outro ✓ na mesma linha ou coluna
+  return !hasConfirmInRow(grid, r, c) && !hasConfirmInCol(grid, c, r);
+}
+
 function applyConfirm(grid, r, c, n) {
   grid[r][c] = 1;
   for (let i = 0; i < n; i++) {
-    if (i !== c) grid[r][i] = grid[r][i] === 1 ? 1 : -1;
-    if (i !== r) grid[i][c] = grid[i][c] === 1 ? 1 : -1;
+    if (i !== c) grid[r][i] = -1;
+    if (i !== r) grid[i][c] = -1;
   }
 }
 
@@ -451,8 +470,13 @@ export default function App() {
       const cur = grid[r][c];
       const next = cur === 0 ? -1 : cur === -1 ? 1 : 0;
 
-      if (next === 1) applyConfirm(grid, r, c, n);
-      else grid[r][c] = next;
+      if (next === 1) {
+        // Só confirma se não viola a restrição 1-para-1
+        if (!canConfirm(grid, r, c)) return;
+        applyConfirm(grid, r, c, n);
+      } else {
+        grid[r][c] = next;
+      }
 
       autoComplete(sw, n);
       autoComplete(sp, n);
@@ -485,19 +509,20 @@ export default function App() {
     gridSP.flat().filter((v) => v === 1).length === n &&
     gridWP.flat().filter((v) => v === 1).length === n;
 
-  // Extrai o trio culpado: o suspeito que tem exatamente 1 confirmação em SW e SP
+  // Extrai todos os trios: cada suspeito com sua arma e local
   // gridSW[s][w] === 1 → suspeito s usou arma w
   // gridSP[s][p] === 1 → suspeito s estava no local p
-  const solution = (() => {
-    if (!solved) return null;
+  const solutions = (() => {
+    if (!solved) return [];
+    const trios = [];
     for (let s = 0; s < n; s++) {
       const w = gridSW[s].indexOf(1);
       const p = gridSP[s].indexOf(1);
       if (w !== -1 && p !== -1) {
-        return { suspect: suspects[s], weapon: weapons[w], place: places[p] };
+        trios.push({ suspect: suspects[s], weapon: weapons[w], place: places[p] });
       }
     }
-    return null;
+    return trios;
   })();
 
   return (
@@ -530,7 +555,7 @@ export default function App() {
       </p>
 
       {/* Solved banner */}
-      {solved && solution && (
+      {solved && solutions.length > 0 && (
         <div
           style={{
             textAlign: "center",
@@ -547,18 +572,21 @@ export default function App() {
             fontSize: "1.1rem",
             letterSpacing: "0.12em",
             textTransform: "uppercase",
-            marginBottom: 6,
+            marginBottom: 8,
           }}>
             ✓ Puzzle Resolvido!
           </div>
-          <div style={{
-            fontFamily: "'Special Elite', 'Courier New', monospace",
-            fontSize: "0.95rem",
-            fontWeight: 400,
-            letterSpacing: "0.04em",
-          }}>
-            Foi <strong>{solution.suspect}</strong> com <strong>{solution.weapon}</strong> no <strong>{solution.place}</strong>
-          </div>
+          {solutions.map((sol, i) => (
+            <div key={i} style={{
+              fontFamily: "'Special Elite', 'Courier New', monospace",
+              fontSize: "0.9rem",
+              fontWeight: 400,
+              letterSpacing: "0.04em",
+              marginBottom: 2,
+            }}>
+              Foi <strong>{sol.suspect}</strong> com <strong>{sol.weapon}</strong> no <strong>{sol.place}</strong>
+            </div>
+          ))}
         </div>
       )}
 
