@@ -461,6 +461,12 @@ export default function App() {
     setCulprit(null);
   }, [n]);
 
+  const resetNames = useCallback(() => {
+    setSuspects([...DEFAULT_SUSPECTS]);
+    setWeapons([...DEFAULT_WEAPONS]);
+    setPlaces([...DEFAULT_PLACES]);
+  }, []);
+
   const handleCell = useCallback(
     (gridName, r, c) => {
       pushHistory();
@@ -549,7 +555,10 @@ export default function App() {
           ↩ Desfazer
         </button>
         <button onClick={resetGrids} style={{ ...btnStyle, background: COLORS.red, color: COLORS.white }}>
-          ✕ Limpar
+          ✕ Limpar Grid
+        </button>
+        <button onClick={resetNames} style={btnStyle}>
+          ✕ Limpar Nomes
         </button>
       </div>
 
