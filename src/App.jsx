@@ -17,9 +17,9 @@ const CELL_W = 52;
 const CELL_H = 40;
 const LABEL_W = 110;
 
-const DEFAULT_SUSPECTS = ["Suspeito A", "Suspeito B", "Suspeito C"];
-const DEFAULT_WEAPONS = ["Arma 1", "Arma 2", "Arma 3"];
-const DEFAULT_PLACES = ["Local X", "Local Y", "Local Z"];
+const DEFAULT_SUSPECTS = ["SUSPEITO A", "SUSPEITO B", "SUSPEITO C"];
+const DEFAULT_WEAPONS = ["ARMA 1", "ARMA 2", "ARMA 3"];
+const DEFAULT_PLACES = ["LOCAL X", "LOCAL Y", "LOCAL Z"];
 
 function createMatrix(rows, cols) {
   return Array.from({ length: rows }, () => Array(cols).fill(0));
@@ -486,17 +486,17 @@ export default function App() {
   );
 
   const renameSuspect = useCallback((i, val) => {
-    setSuspects((prev) => prev.map((v, idx) => (idx === i ? val : v)));
+    setSuspects((prev) => prev.map((v, idx) => (idx === i ? val.toUpperCase() : v)));
   }, []);
 
   const renameWeapon = useCallback((i, val) => {
-    setWeapons((prev) => prev.map((v, idx) => (idx === i ? val : v)));
+    setWeapons((prev) => prev.map((v, idx) => (idx === i ? val.toUpperCase() : v)));
   }, []);
 
   const renamePlace = useCallback((i, val) => {
     // locais aparecem tanto nas colunas quanto nas linhas — sincronizados automaticamente
     // pois ambos leem do mesmo array `places`
-    setPlaces((prev) => prev.map((v, idx) => (idx === i ? val : v)));
+    setPlaces((prev) => prev.map((v, idx) => (idx === i ? val.toUpperCase() : v)));
   }, []);
 
   const [culprit, setCulprit] = useState(null); // índice do suspeito culpado
