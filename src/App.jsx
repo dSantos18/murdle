@@ -469,26 +469,14 @@ export default function App() {
       const wp = deepClone(gridWP);
       const grid = gridName === "sw" ? sw : gridName === "sp" ? sp : wp;
       const cur = grid[r][c];
-      const next = cur === 0 ? -1 : cur === -1 ? 1 : 0;
-
-      if (next === 1) {
-        // Só confirma se não viola a restrição 1-para-1
-        if (!canConfirm(grid, r, c)) return;
-        applyConfirm(grid, r, c, n);
-      } else {
-        grid[r][c] = next;
-      }
-
-      autoComplete(sw, n);
-      autoComplete(sp, n);
-      autoComplete(wp, n);
-      propagate(sw, sp, wp, n);
+      // Ciclo livre: vazio → ✕ → ✓ → vazio (sem restrições)
+      grid[r][c] = cur === 0 ? -1 : cur === -1 ? 1 : 0;
 
       setGridSW(sw);
       setGridSP(sp);
       setGridWP(wp);
     },
-    [gridSW, gridSP, gridWP, n, pushHistory]
+    [gridSW, gridSP, gridWP, pushHistory]
   );
 
   const renameSuspect = useCallback((i, val) => {
